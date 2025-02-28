@@ -10,7 +10,7 @@ import { FileJson, Loader2, Plus, SquareTerminal, TerminalSquare } from "lucide-
 import {BeforeMount, Editor, OnMount} from '@monaco-editor/react';
 import monaco from 'monaco-editor'
 import { Terminal } from "@xterm/xterm";
-import { useCallback, useEffect, useRef, useState } from "react"
+import {  useEffect, useRef, useState } from "react"
 import Sidebar from "./sidebar/index";
 import Tab from "../ui/tab";
 import { TFile, TFolder } from "./sidebar/types";
