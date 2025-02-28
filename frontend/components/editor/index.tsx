@@ -85,7 +85,7 @@ export default function CodeEditor(
     // console.log(userId, virtualboxId);
 
     const socket = io(
-        `http://localhost:4000?userId=${userData.id}&virtualboxId=${virtualboxData.id}`
+        `https://collaborative-cloud-code-editor-api.vercel.app?userId=${userData.id}&virtualboxId=${virtualboxData.id}`
     );
 
     const activeTerminal = terminals.find((t) => t.id === activeTerminalId)
