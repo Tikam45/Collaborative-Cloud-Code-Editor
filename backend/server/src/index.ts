@@ -3,11 +3,13 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import getVirtualboxFiles from "./getVirtualboxFiles";
 import {  z } from "zod";
-import { saveFile, createFile, deleteFile } from "./utils";
+import { saveFile, createFile, deleteFile, generateCode } from "./utils";
 import path from "path";
 import fs from "fs"
+// import {spawn} from "node-pty-prebuilt-multiarch"
 import os from "os"
 import { IDisposable, IPty, spawn } from "node-pty-prebuilt-multiarch";
+import { createFileRL, deleteFileRL, saveFileRL } from "./ratelimit";
 
 const app : Express = express();
 
@@ -40,11 +42,11 @@ const handshakeSchema = z.object({
 io.use(async (socket, next) => {
     const q = socket.handshake.query;
 
-    // console.log("middleware");
-    // console.log(q);
+    console.log("middleware");
+    console.log(q);
 
     const parseQuery = handshakeSchema.safeParse(q);
-    // console.log(parseQuery);
+    console.log(parseQuery);
     if(!parseQuery.success){
         next(new Error("Invalid request"))
         return;
@@ -65,13 +67,15 @@ io.use(async (socket, next) => {
         (utv: any) => utv.virtualboxId === virtualboxId
     );
 
-    if(!virtualbox){
+    console.log(sharedVirtualboxes);
+
+    if(!virtualbox && !sharedVirtualboxes){
         next(new Error("Invalid credentials"));
         return;
     }
 
     socket.data = {
-        id: virtualboxId,
+        virtualboxId: virtualboxId,
         userId
     }
     next();
@@ -81,10 +85,9 @@ io.use(async (socket, next) => {
 io.on ("connection", async(socket) => {
     const data = socket.data as {
         userId: string
-        id: string
-        type: "node" | "react"
+        virtualboxId: string
     };
-    const virtualboxFiles = await getVirtualboxFiles(data.id)
+    const virtualboxFiles = await getVirtualboxFiles(data.virtualboxId)
     // console.log("connected");
     virtualboxFiles.fileData.forEach((file) => {
         const filePath = path.join(dirName, file.id);
@@ -104,67 +107,106 @@ io.on ("connection", async(socket) => {
     })
 
     socket.on("saveFile", async (fileId: string, body: string) => {
-        const file = virtualboxFiles.fileData.find((f) => f.id === fileId);
-        if(!file) return;
+        try{
+            console.log("in saving..........")
+            await saveFileRL.consume(data.userId, 1);
 
-        file.data = body;
+            const file = virtualboxFiles.fileData.find((f) => f.id === fileId);
+            if(!file) return;
 
-        fs.writeFile(path.join(dirName, file.id), body, function(err){
-            if(err) throw err;
-        })
-        await saveFile(fileId, body);
+            file.data = body;
+
+            fs.writeFile(path.join(dirName, file.id), body, function(err){
+                if(err) throw err;
+            })
+            await saveFile(fileId, body);
+        }
+        catch(e){
+            socket.emit("rateLimit", "Rate limited: file saving. Please slow down ")
+        }
     });
 
     socket.on("createFile" , async(name: string) => {
-        const id = `codestore/${data.id}/${name}`;
+        try{
+            await createFileRL.consume(data.userId, 1);
 
-        fs.writeFile(path.join(dirName, id), "", function(err){
-            if(err) throw err;
-        })
+            const id = `${data.virtualboxId}/${name}`;
 
-        virtualboxFiles.files.push({
-            id,
-            name,
-            type: "file"
-        });
+            fs.writeFile(path.join(dirName, id), "", function(err){
+                if(err) throw err;
+            })
 
-        virtualboxFiles.fileData.push({
-            id,
-            data: "",
-        });
+            virtualboxFiles.files.push({
+                id,
+                name,
+                type: "file"
+            });
 
-        await createFile(id);
+            virtualboxFiles.fileData.push({
+                id,
+                data: "",
+            });
+
+            await createFile(id);
+        }
+        catch(e){
+            io.emit("rateLimit", "Rate limited: file creation. Please slow down ")
+        }
     })
 
     socket.on("deleteFile" , async (fileId: string , callback) => {
-        const file = virtualboxFiles.fileData.find((f) => f.id === fileId);
-        if(!file) return;
+        try{
+            await deleteFileRL.consume(data.userId, 1);
 
-        fs.unlink(path.join(dirName, fileId), function(err) {
-            if(err) throw err;
-        })
+            const file = virtualboxFiles.fileData.find((f) => f.id === fileId);
+            if(!file) return;
 
-        virtualboxFiles.fileData = virtualboxFiles.fileData.filter((f) => f.id !== fileId);
+            fs.unlink(path.join(dirName, fileId), function(err) {
+                if(err) throw err;
+            })
 
-        await deleteFile(fileId);
+            virtualboxFiles.fileData = virtualboxFiles.fileData.filter((f) => f.id !== fileId);
 
-        const newFiles = await getVirtualboxFiles(data.id);
-        callback(newFiles.files);
+            await deleteFile(fileId);
+
+            const newFiles = await getVirtualboxFiles(data.virtualboxId);
+            callback(newFiles.files);
+        }
+        catch(e){
+            io.emit("rateLimit", "Rate limited: file deletion. Please slow down ")
+        }
     })
 
-    socket.on("createTerminal", ({id} : {id: string}) => {
+    socket.on("createTerminal", (id: string, callback) => {
+        console.log("in Terminal", id);
+
+        if(terminals[id]){
+            console.log("Terminal already exists");
+            return;
+        }
+        if(Object.keys(terminals).length > 5){
+            console.log("Too many terminals");
+            return;
+        }
+
+        const newPath = path.join(dirName, "projects", data.virtualboxId);
+        console.log(newPath);
+        fs.mkdirSync(newPath, {recursive: true});
+
         const pty = spawn(os.platform() === "win32" ? "cmd.exe" : "bash", [], {
             name: "xterm",
             cols: 100,
-            cwd: path.join(dirName, "projects", data.id),
+            cwd: path.join(dirName, "projects", data.virtualboxId),
         })
 
         const onData = pty.onData((data) => {
-            socket.emit("terminalResponse", {
+            io.emit("terminalResponse", {
+                id,
                 data,
             })
         });
 
+        console.log("Terminal created", terminals);
         const onExit = pty.onExit((code) => console.log("exit", code));
         pty.write("clear\r")
         terminals[id] = {
@@ -172,14 +214,31 @@ io.on ("connection", async(socket) => {
             onData,
             onExit
         };
+
+        callback(true);
+    });
+
+    socket.on("closeTerminal", (id: string, callback) => {
+        if(!terminals[id]){
+            console.log("tried to close, but terminal doesn't exist");
+            return;
+        }
+
+        terminals[id].onData.dispose();
+        terminals[id].onExit.dispose();
+
+        delete terminals[id];
+        callback(true);
     })
 
-    socket.on("terminalData" , ({id, data} : {id: string, data : string}) => {
+    socket.on("terminalData" , (id: string, data: string) => {
+        console.log("term Data", id, data);
         if(!terminals[id]){
             return;
         }
 
         try{
+            console.log("writing to terminal");
             terminals[id].terminal.write(data);
         }catch(e){
             console.log("Error writing to terminal", e);
@@ -195,26 +254,26 @@ io.on ("connection", async(socket) => {
     ) => {
         console.log("generating...")
 
-        const res = await fetch("https://api.cloudflare.com/client/v4/accounts/49ec3b98dac5f81ba729f8283f7ad51d/ai/run/@cf/meta/llama-3-8b-instruct", {
+        const fetchPromise = fetch("https://cce-backend.tikamgupta05122004.workers.dev/api/virtualbox/generate", {
             method: "POST",
-            headers: { Authorization: "Bearer KNjfAc2pLtl-fnt4LVqWSHUUgghASZJcp4QN2JkY",
-                "Content-Type": "application/json"
+            headers: {
+                "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                messages: [
-                    {
-                        role: "system",
-                        content: "You are an expert coding assistant who reads from an existing code file and suggests code to add to the file. You many be given instructions on what to generate, which you should follow. You should generate code that is correct, efficient, and follows best practices. You should also generate code that is clear and easy to read."
-                    },
-                    {
-                        role: "user",
-                        content: `The file is called ${fileName}. Here are my instructions on what to generate: ${instructions}. Suggest me code to insert at line ${line} in my file. My code file content: ${code}. Return only the code, and nothing else. Do not include backticks`,
-                    }
-                ]
+                userId: data.userId,
             })
+        });
+
+        const generateCodePromise = generateCode({
+            fileName,
+            code,
+            line,
+            instructions
         })
 
-        const json = await res.json();
+        const [fetchResponse, generateCodeResponse] = await Promise.all([fetchPromise, generateCodePromise]);
+
+        const json = await generateCodeResponse.json();
         callback(json);
     })
 

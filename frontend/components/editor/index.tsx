@@ -1,4 +1,3 @@
-
 "use client"
 
 import {
@@ -7,10 +6,11 @@ import {
     ResizablePanelGroup,
   } from "../ui/resizable"
 import { Button } from "../ui/button"
-import { FileJson, Plus, SquareTerminal, X } from "lucide-react"
+import { FileJson, Loader, Loader2, Plus, SquareTerminal, TerminalSquare, X } from "lucide-react"
 import {BeforeMount, Editor, OnMount} from '@monaco-editor/react';
 import monaco from 'monaco-editor'
-import { use, useEffect, useRef, useState } from "react"
+import { Terminal } from "@xterm/xterm";
+import { useEffect, useRef, useState } from "react"
 import Sidebar from "./sidebar/index";
 import Tab from "../ui/tab";
 import { TFile, TFolder } from "./sidebar/types";
@@ -19,41 +19,53 @@ import {io} from "socket.io-client"
 import { processFileType } from "@/lib/utils";
 import EditorTerminal from "./terminal/index";
 import GenerateInput from "./generate";
-import { number } from "zod";
 import * as Y from "yjs"
-import LiveblocksProvider from "@liveblocks/yjs"
-import {MonacoBinding} from "y-monaco"
+import LiveblocksProvider  from "@liveblocks/yjs"
+import {MonacoBinding} from 'y-monaco'
 import { Awareness } from "y-protocols/awareness.js";
 import { TypedLiveblocksProvider, useRoom } from "@/liveblocks.config";
-import { Avatars } from "./live/avatars";
 import { Cursors } from "./live/cursors";
+import { User, VirtualBox } from "@/lib/types";
+import { toast } from "sonner";
+import {createId} from "@paralleldrive/cuid2"
+import PreviewWindow from "./preview";
 
 export default function CodeEditor(
     {
-        userId,
-        virtualboxId
+        userData,
+        virtualboxData
     }:{
-        userId: string,
-        virtualboxId :string
+        userData: User,
+        virtualboxData :VirtualBox
     }
 ){
+    // /console.log("asdfadf")
     const [editorRef, setEditorRef] = useState<monaco.editor.IStandaloneCodeEditor>();
 
     const clerk = useClerk();
 
     const [tabs, setTabs] = useState<TFile[]>([])
-    const [activeId, setActiveId] = useState<string | null>(null);
+    const [activeId, setActiveId] = useState<string>("");
     const [files, setFiles] = useState<(TFile | TFolder)[]>([]);
     const [editorLanguage, setEditorLanguage] = useState<string | undefined> (undefined);
     const [activeFile, setActiveFile] = useState<string | null> (null);
     const [term , setTerm] = useState<string[]>([])
-
+    const [ai, setAi] = useState(false);
+    const [closingTerminal, setClosingTerminal] = useState("");
     const [provider, setProvider] = useState<TypedLiveblocksProvider>()
-
+    const [activeTerminalId, setActiveTerminalId] = useState("");
+    const [creatingTerminal, setCreatingTerminal] = useState(false);
     const generateRef = useRef<HTMLDivElement>(null);
+
     const [showGenerate, setShowGenerate] = useState(false);
     const monacoRef = useRef<typeof monaco | null>(null);
     const [cursorLine, setCursorLine] = useState(0);
+    const [terminals, setTerminals] = useState<
+    {
+      id: string;
+      terminal: Terminal | null;
+    }[]
+  >([]);
     const [generate, setGenerate] = useState<{
         show: boolean,
         id: string
@@ -70,10 +82,13 @@ export default function CodeEditor(
     const editorContainerRef = useRef<HTMLDivElement>(null); 
     const generateWidgetRef = useRef<HTMLDivElement>(null);
 
+    // console.log(userId, virtualboxId);
 
     const socket = io(
-        `http://localhost:4000?userId=${userId}&virtualboxId=${virtualboxId}`
+        `http://localhost:4000?userId=${userData.id}&virtualboxId=${virtualboxData.id}`
     );
+
+    const activeTerminal = terminals.find((t) => t.id === activeTerminalId)
 
     const resizeObserver = new ResizeObserver((entries) => {
         for(const entry of entries){
@@ -84,7 +99,10 @@ export default function CodeEditor(
         }
     })
 
+    // revalidatePath(`/code/${virtualboxData.id}`)
+    console.log("hellfghjo")
     useEffect(() => {
+        console.log("hellfghjo")
         socket.connect();
 
         if(editorContainerRef.current){
@@ -94,35 +112,61 @@ export default function CodeEditor(
         return () => {
             socket.disconnect();
             resizeObserver.disconnect();
+
+            // terminals.forEach((term) => {
+            //     if(term.terminal) term.terminal.dispose();
+            // })
         }
     }, [])
 
     useEffect(() => {
         function onLoadedEvent (files : (TFolder | TFile)[]){
+            console.log("tikam")
             setFiles(files);
         }
 
-        const onConnect = () => {};
+        const onConnect = () => {
+            // createTerminal();
+        };
 
         const onDisconnect =() => {}
 
+        const onRateLimit = (message: string) => {
+            toast.error(message);
+        }
+
+        const onTerminalResponse = (response: {id: string, data :string}) => {
+
+            const res = response.data;
+            console.log("response", res);
+            const term = terminals.find((t) => t.id === response.id);
+            if(term && term.terminal) term.terminal.write(response.data);
+        }
+
         socket.on("connect" , onConnect);
+
+        socket.on("loaded", onLoadedEvent);
+
+        socket.on("rateLimit", onRateLimit);
+        socket.on("terminalResponse", onTerminalResponse);
 
         socket.on("disconnect", onDisconnect);
 
-        socket.on("loaded", onLoadedEvent);
 
         return () => {
             socket.off("loaded", onLoadedEvent);
             socket.off("disconnect", onDisconnect);
             socket.off("connect", onConnect);
+            socket.off("rateLimit", onRateLimit);
+            socket.off("terminalResponse", onTerminalResponse);
         }
-    }, [])
+    }, [terminals])
 
     const selectFile = (tab: TFile) => {
+        if(tab.id === activeId) return;
+        const exists = tabs.find((t) => t.id === tab.id);
         console.log("ehll", tab)
         setTabs((prev) => {
-            const exists = prev.find((t) => t.id === tab.id)
             if(exists){
                 setActiveId(exists.id)
                 console.log('afa')
@@ -149,18 +193,22 @@ export default function CodeEditor(
 
         if(index === -1) return;
 
-            const nextId 
-            = activeId === tab.id 
-                ? numTabs === 1 
-                ? null: index < numTabs-1 
-                ? tabs[index+1].id : tabs[index-1].id
-            : activeId
+        const nextId 
+        = activeId === tab.id 
+            ? numTabs === 1 
+            ? null: index < numTabs-1 
+            ? tabs[index+1].id : tabs[index-1].id
+        : activeId
 
+        setTabs((prev) => prev.filter((t) => t.id !== tab.id))
+
+        if(!nextId){
+            setActiveId("");
+        }else{
             const nextTab = tabs.find((t) => t.id === nextId);
 
-            if(nextTab) selectFile(nextTab)
-            else setActiveId(null);
-        setTabs((prev) => prev.filter((t) => t.id !== tab.id))
+            if(nextTab) selectFile(nextTab);
+        }
     };
 
 
@@ -216,36 +264,60 @@ export default function CodeEditor(
         })
     }
 
-    const room = useRoom();
+    const createTerminal = () => {
+        setCreatingTerminal(true);
+        const id = createId();
+
+        setTerminals((prev) => [...prev, {id, terminal: null}]);
+
+        setActiveTerminalId(id);
+        setTimeout(() => {
+            socket.emit("createTerminal", id, () => {
+                
+                setCreatingTerminal(false);
+            })
+        }, 1000)
+    }
+
+    const closeTerminal = (term : {id: string; terminal: Terminal | null}) => {
+        const numTerminals = terminals.length;
+        const index = terminals.findIndex((t) => t.id === term.id);
+
+        if(index === -1) return;
+
+        setClosingTerminal(term.id);
+
+        socket.emit("closeTerminal", term.id, (res: boolean) => {
+            setClosingTerminal("");
+            const nextId = 
+            activeTerminalId === term.id 
+            ? numTerminals === 1 
+                ? null
+                : index < numTerminals -1
+                ? terminals[index+1].id
+                : terminals[index-1].id
+            : activeTerminalId;
+
+            // if(activeTerminal && activeTerminal.terminal){
+            //     activeTerminal.terminal.dispose();
+            // }
+
+            setTerminals((prev) => prev.filter((t) => t.id !== term.id));
+
+            setActiveTerminalId(nextId || "");
+        })
+    }
 
     useEffect(() => {
-
-        let yDoc: Y.Doc
-        let yProvider : any
-        let binding : MonacoBinding
-
-        if(editorRef){
-            yDoc = new Y.Doc()
-            const yText = yDoc.getText("monaco")
-            yProvider = new LiveblocksProvider(room, yDoc);
-            setProvider(yProvider);
-
-            binding = new MonacoBinding(
-                yText,
-                editorRef?.getModel() as monaco.editor.ITextModel,
-                new Set([editorRef]),
-                yProvider.awareness as Awareness
-            )
+        if(!ai){
+            setGenerate((prev) => {
+                return{
+                    ...prev,
+                    show: false
+                }
+            })
+            return;
         }
-
-        return () => {
-            yDoc?.destroy();
-            yProvider?.destroy();
-            binding?.destroy();
-        }
-    }, [editorRef, room])
-
-    useEffect(() => {
         if(generate.show){
             editorRef?.changeViewZones(function(changeAccessor){
                 if(!generateRef.current) return;
@@ -265,8 +337,8 @@ export default function CodeEditor(
 
             const widgetElement = generateWidgetRef.current;
 
-            const contentWidget = {
-                getDomeNode: () => {
+            const contentWidget : monaco.editor.IContentWidget = {
+                getDomNode: () => {
                     return widgetElement
                 },
                 getId: () => {
@@ -319,6 +391,8 @@ export default function CodeEditor(
             decorations.instance?.clear();
         }
 
+        if(!ai) return;
+
         if(decorations.instance){
             decorations.instance.set(decorations.options);
         }else{
@@ -343,7 +417,7 @@ export default function CodeEditor(
 
                 setTabs((prev) => prev.map((tab) => tab.id === activeId ? {...tab, saved: true} : tab));
 
-                socket.emit("savedFile", activeId, editorRef?.getValue());
+                socket.emit("saveFile", activeId, editorRef?.getValue());
             }
         };
 
@@ -374,12 +448,64 @@ export default function CodeEditor(
         ]) 
     }
 
+    const room = useRoom();
+
+    useEffect(() => {
+
+        const tab = tabs.find((t) => t.id === activeId);
+        const model = editorRef?.getModel();
+
+        if (!editorRef || !tab || !model) return;
+
+        const yDoc = new Y.Doc();
+        const yText = yDoc.getText(tab.id);
+        const yProvider: any = new LiveblocksProvider(room, yDoc);
+
+        console.log("editor", editorRef);
+        console.log("tabId", tab.id);
+        const onSync = (isSynced: boolean) => {
+            if(isSynced) {
+                const text = yText.toString();
+                if(text === ""){
+                    if(activeFile){
+                        yText.insert(0, activeFile);
+                    }else{
+                        setTimeout(() => {
+                            yText.insert(0, editorRef.getValue());
+                        }, 0)
+                    }
+                }
+            }else{
+
+            }
+        }
+
+        yProvider.on("sync", onSync);
+    
+        setProvider(yProvider);
+    
+        const binding : any = new MonacoBinding(
+          yText,
+          model as monaco.editor.ITextModel,
+          new Set([editorRef]),
+          yProvider.awareness as Awareness
+        );
+    
+        return () => {
+            yDoc?.destroy();
+            yProvider?.destroy();
+            binding?.destroy();
+            yProvider.off("sync", onSync);
+        }; 
+    }, [editorRef, room, activeFile])
+
     return(
         <>
             <div ref={generateRef} />
             <div className="z-50 p-1" ref={generateWidgetRef}>
-                {generate.show ? (
+                {generate.show && ai ? (
                     <GenerateInput 
+                    user={userData}
                     socket={socket}
                     data={{
                         fileName: tabs.find((t) => t.id === activeId)?.name ?? "",
@@ -398,7 +524,7 @@ export default function CodeEditor(
 
                             const id = changeAccessor.addZone({
                                 afterLineNumber: cursorLine,
-                                heightInLines: 12,
+                                heightInLines: 0,
                                 domNode: generateRef.current,
                             });
             
@@ -426,17 +552,28 @@ export default function CodeEditor(
                     />
                 ) : null}
             </div>
-            <Sidebar files = {files} handleDeletFolder={handleDeletFolder} handleDeleteFile={handleDeleteFile} selectFile = {selectFile} socket={socket} addNew={(name, type) => {
+            <Sidebar 
+            files = {files} 
+            handleDeletFolder={handleDeletFolder} 
+            handleDeleteFile={handleDeleteFile} 
+            selectFile = {selectFile} 
+            socket={socket} 
+            addNew={(name, type) => {
                 if(type === "file"){
                     setFiles((prev) => [
                         ...prev,
-                        {id: `codestore/${virtualboxId}/${name}`, name, type: "file"},
+                        {id: `codestore/${virtualboxData.id}/${name}`, 
+                        type: "file",
+                        name, },
                     ]);
                 }
                 else{
                     console.log("adding")
                 }
-                }}/>
+            }}
+            ai={ai}
+            setAi={setAi}
+            />
             <ResizablePanelGroup direction="horizontal">
                 <ResizablePanel
                     maxSize={75}
@@ -453,9 +590,9 @@ export default function CodeEditor(
                     </div>
                     <div ref={editorContainerRef} className="grow w-full overflow-hidden rounded-lg relative">
                         {
-                            activeId === null ? (
+                            !activeId ? (
                                 <>
-                                    <div>
+                                    <div className="flex justify-center items-center h-full">
                                         <FileJson className="w-6 h-6 mr-3" />
                                         No File Selected
                                     </div>
@@ -471,7 +608,20 @@ export default function CodeEditor(
                                         beforeMount={handleEditorWillMount}
                                         onMount={handleEditorMount}
                                         onChange={(value) => {
-                                            setTabs((prev) => prev.map((tab) => tab.id === activeId ? {...tab, saved: false}: tab))
+                                            if(value === activeFile){
+                                                setTabs((prev) => 
+                                                    prev.map((tab) => 
+                                                        tab.id === activeId ? {...tab, saved: true}: tab
+                                                    )
+                                                )
+                                            }
+                                            else{
+                                                setTabs((prev) => 
+                                                    prev.map((tab) => 
+                                                        tab.id === activeId ? {...tab, saved: false}: tab
+                                                    )
+                                                )
+                                            }
                                         }}
                                         options={{
                                             minimap:{
@@ -496,31 +646,63 @@ export default function CodeEditor(
                 <ResizablePanel defaultSize={40}>
                     <ResizablePanelGroup direction="vertical">
                         <ResizablePanel defaultSize={50} minSize={20} className="p-2 flex flex-col">
-                            <div className="h-10 w-full flex gap-2">
-                                <Button
-                                    variant={"secondary"}
-                                    size={"sm"}
-                                    className="min-w-20 justify-between"
-                                >
-                                    localhost:3000 <X className="w-3 h-3"/>
-                                </Button>
-                            </div>
-                            <div className="w-full grow rounded-lg bg-foreground"></div>
+                            <PreviewWindow/>
                         </ResizablePanel>
                         <ResizableHandle/>
                         <ResizablePanel defaultSize={50} minSize={20} className="p-2 flex flex-col">
                             <div className="h-10 w-full flex gap-2">
-                                <Tab selected>
-                                    <SquareTerminal className="w-4 h-4 mr-2"/>
-                                    Shell
-                                </Tab>
-                                <Button size={"smIcon"} variant={"secondary"} className="font-normal select-none text-muted-foreground">
-                                    <Plus className="w-4 h-4" />
+
+                                {
+                                    terminals.map((term) => (
+                                        <Tab key={term.id} selected={activeTerminalId === term.id} onClick={() => setActiveTerminalId(term.id)} onClose={() => closeTerminal(term)}>
+                                            <SquareTerminal className="w-4 h-4 mr-2"/>
+                                            Shell
+                                        </Tab> 
+                                    ))
+                                }
+                                <Button
+                                disabled={creatingTerminal}
+                                onClick={() => {
+                                    if(terminals.length >= 4){
+                                        toast.error("You reached the maximum no. of terminals you can have")
+                                        return;
+                                    }
+                                    createTerminal();
+                                }}
+                                 size={"smIcon"} variant={"secondary"} className="font-normal select-none text-muted-foreground">
+                                    {
+                                        creatingTerminal ? 
+                                        <Loader2 className="animate-spin w-4 h-4" /> : 
+                                        <Plus className="w-4 h-4" />
+                                    }
                                 </Button>
                             </div>
-                            <div className="w-full relative grow rounded-lg bg-secondary">
-                                {socket ? <EditorTerminal socket={socket} /> : null }
-                            </div>
+                            {
+                                socket && activeTerminal ? 
+                                (
+                                    <div className="w-full relative grow rounded-lg bg-secondary">
+                                        {
+                                            terminals.map(((term) => (
+                                                <EditorTerminal key={term.id} socket={socket} id={activeTerminal.id} term={activeTerminal.terminal} 
+                                                setTerm={(t: Terminal) => {
+                                                    setTerminals((prev) => 
+                                                    prev.map((term) => 
+                                                        term.id === activeTerminalId ? {...term, terminal: t} : term))
+                                                }}
+                                                visible={activeTerminalId === term.id}
+                                                /> 
+                                            )))
+                                        }
+                                    </div>
+                                ) :
+                                (
+                                    <div className="w-full h-full items-center justify-center text-muted-foreground flex bg-secondary">
+                                        <TerminalSquare className="w-4 h-4 mr-2" />
+                                        No Terminals Open
+                                    </div>
+                                )
+                            }
+                            
                         </ResizablePanel>
                     </ResizablePanelGroup>
                 </ResizablePanel>

@@ -1,6 +1,6 @@
-
 "use client"
 
+import { colors } from "@/lib/colors";
 import { AwarenessList, TypedLiveblocksProvider, UserAwareness, useSelf } from "@/liveblocks.config";
 import { useEffect, useMemo, useState } from "react";
 
@@ -38,7 +38,7 @@ export function Cursors({yProvider}: {yProvider: TypedLiveblocksProvider}){
                 cursorStyles += `
                     .yRemoteSelection-${clientId},
                     .yRemoteSelectionHead-${clientId}{
-                    --user-color: ${"#FF0000"}
+                    --user-color: ${colors[client.user?.color] };
                     }
 
                     .yRemoteSelectionHead-${clientId}::after{

@@ -4,6 +4,8 @@ import Image from "next/image";
 import { Button } from "../ui/button";
 import { ChevronRight } from "lucide-react";
 import Avatar from "../ui/avatar";
+import { redirect } from "next/navigation";
+import Link from "next/link";
 
 
 export default function DashboardSharedWithMe({ shared} : 
@@ -50,9 +52,11 @@ export default function DashboardSharedWithMe({ shared} :
                                 </TableCell>
                                 <TableCell>{(new Date(virtualbox.sharedOn)).toLocaleDateString()}</TableCell>
                                 <TableCell className="text-right">
-                                    <Button>
-                                        Open <ChevronRight className="h-4 w-4 ml-2" />
-                                    </Button>
+                                    <Link href={`code/${virtualbox.id}`}>
+                                        <Button>
+                                            Open <ChevronRight className="h-4 w-4 ml-2" />
+                                        </Button>
+                                    </Link>
                                 </TableCell>
                             </TableRow>
                         ))}

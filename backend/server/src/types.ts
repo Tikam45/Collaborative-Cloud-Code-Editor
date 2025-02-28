@@ -47,3 +47,25 @@ export type SupabaseFileBody = SupabaseFileData & {
     json: Promise<any>
     blob: Promise<Blob>
 }
+
+export type Virtualbox ={
+    id: string,
+    name: string,
+    type: "react" | "node"
+    userId: string,
+    usersToVirtualboxes: UsersToVirtualboxes[];
+}
+
+export type User = {
+    id: string
+    name: string
+    email: string
+    virtualbox: Virtualbox[]
+    generations: number
+    usersToVirtualboxes:UsersToVirtualboxes[]
+}
+
+export type UsersToVirtualboxes = {
+    userId: string,
+    virtualboxId: string
+}

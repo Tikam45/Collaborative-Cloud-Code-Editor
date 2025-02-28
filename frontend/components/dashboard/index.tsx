@@ -12,6 +12,8 @@ import DashboardSharedWithMe from "./shared";
 import DashboardProjects from "./projects";
 import NewProjectModal from "./newProject";
 import { useParams, useSearchParams } from "next/navigation";
+import AboutModal from "./about";
+import { toast } from "sonner";
 
 export default function Dashboard({virtualboxes, shared}: {
     virtualboxes: VirtualBox[]
@@ -33,6 +35,7 @@ export default function Dashboard({virtualboxes, shared}: {
 
     const [screen, setScreen] = useState<TScreen>("projects");
     const [newProjectModalOpen, setNewProjectModalOpen] = useState(false);
+    const [aboutModalOpen, setAboutModalOpen] = useState(false);
 
     const activeScreen = (s: TScreen) => {
         if(screen === s) return "justify-start"
@@ -46,11 +49,22 @@ export default function Dashboard({virtualboxes, shared}: {
         <>
             <NewProjectModal 
                 open={newProjectModalOpen} 
-                setOpen={setNewProjectModalOpen}/>
+                setOpen={setNewProjectModalOpen}
+            />
+            <AboutModal
+                open={aboutModalOpen}
+                setOpen={setAboutModalOpen}
+            />
             <div className="flex grow w-full">
                 <div className="w-56 shrink-0 border-r border-border p-4 justify-between flex flex-col">
                     <div className="flex flex-col">
-                        <CustomButton disabled={false} className="mb-4" onClick={() => setNewProjectModalOpen(true)}>
+                        <CustomButton disabled={false} className="mb-4" 
+                        onClick={() => {
+                            if(virtualboxes.length >= 8) {
+                                toast.error("You can only have 8 projects at a time")
+                                return;
+                            }
+                            setNewProjectModalOpen(true)}}>
                             <Plus className="w-4 h-4 mr-2"/>
                             New Project
                         </CustomButton>
@@ -72,7 +86,7 @@ export default function Dashboard({virtualboxes, shared}: {
                             <Code2 className="w-4 h-4 mr-2" />
                             Github Repo
                         </Button>
-                        <Button variant={"ghost"} className="justify-start text-muted-foreground">
+                        <Button onClick={()=> setAboutModalOpen(true)} variant={"ghost"} className="justify-start text-muted-foreground">
                             <HelpCircle className="w-4 h-4 mr-2" />
                             About
                         </Button>

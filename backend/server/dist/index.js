@@ -20,8 +20,10 @@ const zod_1 = require("zod");
 const utils_1 = require("./utils");
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+// import {spawn} from "node-pty-prebuilt-multiarch"
 const os_1 = __importDefault(require("os"));
 const node_pty_prebuilt_multiarch_1 = require("node-pty-prebuilt-multiarch");
+const ratelimit_1 = require("./ratelimit");
 const app = (0, express_1.default)();
 const port = process.env.PORT || 4000;
 const httpServer = (0, http_1.createServer)(app);
@@ -41,10 +43,10 @@ const handshakeSchema = zod_1.z.object({
 });
 io.use((socket, next) => __awaiter(void 0, void 0, void 0, function* () {
     const q = socket.handshake.query;
-    // console.log("middleware");
-    // console.log(q);
+    console.log("middleware");
+    console.log(q);
     const parseQuery = handshakeSchema.safeParse(q);
-    // console.log(parseQuery);
+    console.log(parseQuery);
     if (!parseQuery.success) {
         next(new Error("Invalid request"));
         return;
@@ -56,20 +58,21 @@ io.use((socket, next) => __awaiter(void 0, void 0, void 0, function* () {
         next(new Error("DB Error"));
     }
     const virtualbox = dbUserJSON.virtualbox.find((v) => v.id === virtualboxId);
-    if (!virtualbox) {
+    const sharedVirtualboxes = dbUserJSON.usersToVirtualboxes.find((utv) => utv.virtualboxId === virtualboxId);
+    console.log(sharedVirtualboxes);
+    if (!virtualbox && !sharedVirtualboxes) {
         next(new Error("Invalid credentials"));
         return;
     }
     socket.data = {
-        id: virtualboxId,
-        type,
+        virtualboxId: virtualboxId,
         userId
     };
     next();
 }));
 io.on("connection", (socket) => __awaiter(void 0, void 0, void 0, function* () {
     const data = socket.data;
-    const virtualboxFiles = yield (0, getVirtualboxFiles_1.default)(data.id);
+    const virtualboxFiles = yield (0, getVirtualboxFiles_1.default)(data.virtualboxId);
     // console.log("connected");
     virtualboxFiles.fileData.forEach((file) => {
         const filePath = path_1.default.join(dirName, file.id);
@@ -87,57 +90,90 @@ io.on("connection", (socket) => __awaiter(void 0, void 0, void 0, function* () {
         callback(file.data);
     });
     socket.on("saveFile", (fileId, body) => __awaiter(void 0, void 0, void 0, function* () {
-        const file = virtualboxFiles.fileData.find((f) => f.id === fileId);
-        if (!file)
-            return;
-        file.data = body;
-        fs_1.default.writeFile(path_1.default.join(dirName, file.id), body, function (err) {
-            if (err)
-                throw err;
-        });
-        yield (0, utils_1.saveFile)(fileId, body);
+        try {
+            console.log("in saving..........");
+            yield ratelimit_1.saveFileRL.consume(data.userId, 1);
+            const file = virtualboxFiles.fileData.find((f) => f.id === fileId);
+            if (!file)
+                return;
+            file.data = body;
+            fs_1.default.writeFile(path_1.default.join(dirName, file.id), body, function (err) {
+                if (err)
+                    throw err;
+            });
+            yield (0, utils_1.saveFile)(fileId, body);
+        }
+        catch (e) {
+            socket.emit("rateLimit", "Rate limited: file saving. Please slow down ");
+        }
     }));
     socket.on("createFile", (name) => __awaiter(void 0, void 0, void 0, function* () {
-        const id = `codestore/${data.id}/${name}`;
-        fs_1.default.writeFile(path_1.default.join(dirName, id), "", function (err) {
-            if (err)
-                throw err;
-        });
-        virtualboxFiles.files.push({
-            id,
-            name,
-            type: "file"
-        });
-        virtualboxFiles.fileData.push({
-            id,
-            data: "",
-        });
-        yield (0, utils_1.createFile)(id);
+        try {
+            yield ratelimit_1.createFileRL.consume(data.userId, 1);
+            const id = `${data.virtualboxId}/${name}`;
+            fs_1.default.writeFile(path_1.default.join(dirName, id), "", function (err) {
+                if (err)
+                    throw err;
+            });
+            virtualboxFiles.files.push({
+                id,
+                name,
+                type: "file"
+            });
+            virtualboxFiles.fileData.push({
+                id,
+                data: "",
+            });
+            yield (0, utils_1.createFile)(id);
+        }
+        catch (e) {
+            io.emit("rateLimit", "Rate limited: file creation. Please slow down ");
+        }
     }));
     socket.on("deleteFile", (fileId, callback) => __awaiter(void 0, void 0, void 0, function* () {
-        const file = virtualboxFiles.fileData.find((f) => f.id === fileId);
-        if (!file)
-            return;
-        fs_1.default.unlink(path_1.default.join(dirName, fileId), function (err) {
-            if (err)
-                throw err;
-        });
-        virtualboxFiles.fileData = virtualboxFiles.fileData.filter((f) => f.id !== fileId);
-        yield (0, utils_1.deleteFile)(fileId);
-        const newFiles = yield (0, getVirtualboxFiles_1.default)(data.id);
-        callback(newFiles.files);
+        try {
+            yield ratelimit_1.deleteFileRL.consume(data.userId, 1);
+            const file = virtualboxFiles.fileData.find((f) => f.id === fileId);
+            if (!file)
+                return;
+            fs_1.default.unlink(path_1.default.join(dirName, fileId), function (err) {
+                if (err)
+                    throw err;
+            });
+            virtualboxFiles.fileData = virtualboxFiles.fileData.filter((f) => f.id !== fileId);
+            yield (0, utils_1.deleteFile)(fileId);
+            const newFiles = yield (0, getVirtualboxFiles_1.default)(data.virtualboxId);
+            callback(newFiles.files);
+        }
+        catch (e) {
+            io.emit("rateLimit", "Rate limited: file deletion. Please slow down ");
+        }
     }));
-    socket.on("createTerminal", ({ id }) => {
+    socket.on("createTerminal", (id, callback) => {
+        console.log("in Terminal", id);
+        if (terminals[id]) {
+            console.log("Terminal already exists");
+            return;
+        }
+        if (Object.keys(terminals).length > 5) {
+            console.log("Too many terminals");
+            return;
+        }
+        const newPath = path_1.default.join(dirName, "projects", data.virtualboxId);
+        console.log(newPath);
+        fs_1.default.mkdirSync(newPath, { recursive: true });
         const pty = (0, node_pty_prebuilt_multiarch_1.spawn)(os_1.default.platform() === "win32" ? "cmd.exe" : "bash", [], {
             name: "xterm",
             cols: 100,
-            cwd: path_1.default.join(dirName, "projects", data.id),
+            cwd: path_1.default.join(dirName, "projects", data.virtualboxId),
         });
         const onData = pty.onData((data) => {
-            socket.emit("terminalResponse", {
+            io.emit("terminalResponse", {
+                id,
                 data,
             });
         });
+        console.log("Terminal created", terminals);
         const onExit = pty.onExit((code) => console.log("exit", code));
         pty.write("clear\r");
         terminals[id] = {
@@ -145,12 +181,25 @@ io.on("connection", (socket) => __awaiter(void 0, void 0, void 0, function* () {
             onData,
             onExit
         };
+        callback(true);
     });
-    socket.on("terminalData", ({ id, data }) => {
+    socket.on("closeTerminal", (id, callback) => {
+        if (!terminals[id]) {
+            console.log("tried to close, but terminal doesn't exist");
+            return;
+        }
+        terminals[id].onData.dispose();
+        terminals[id].onExit.dispose();
+        delete terminals[id];
+        callback(true);
+    });
+    socket.on("terminalData", (id, data) => {
+        console.log("term Data", id, data);
         if (!terminals[id]) {
             return;
         }
         try {
+            console.log("writing to terminal");
             terminals[id].terminal.write(data);
         }
         catch (e) {
@@ -159,25 +208,23 @@ io.on("connection", (socket) => __awaiter(void 0, void 0, void 0, function* () {
     });
     socket.on("generateCode", (fileName, code, line, instructions, callback) => __awaiter(void 0, void 0, void 0, function* () {
         console.log("generating...");
-        const res = yield fetch("https://api.cloudflare.com/client/v4/accounts/49ec3b98dac5f81ba729f8283f7ad51d/ai/run/@cf/meta/llama-3-8b-instruct", {
+        const fetchPromise = fetch("https://cce-backend.tikamgupta05122004.workers.dev/api/virtualbox/generate", {
             method: "POST",
-            headers: { Authorization: "Bearer KNjfAc2pLtl-fnt4LVqWSHUUgghASZJcp4QN2JkY",
-                "Content-Type": "application/json"
+            headers: {
+                "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                messages: [
-                    {
-                        role: "system",
-                        content: "You are an expert coding assistant who reads from an existing code file and suggests code to add to the file. You many be given instructions on what to generate, which you should follow. You should generate code that is correct, efficient, and follows best practices. You should also generate code that is clear and easy to read."
-                    },
-                    {
-                        role: "user",
-                        content: `The file is called ${fileName}. Here are my instructions on what to generate: ${instructions}. Suggest me code to insert at line ${line} in my file. My code file content: ${code}. Return only the code, and nothing else. Do not include backticks`,
-                    }
-                ]
+                userId: data.userId,
             })
         });
-        const json = yield res.json();
+        const generateCodePromise = (0, utils_1.generateCode)({
+            fileName,
+            code,
+            line,
+            instructions
+        });
+        const [fetchResponse, generateCodeResponse] = yield Promise.all([fetchPromise, generateCodePromise]);
+        const json = yield generateCodeResponse.json();
         callback(json);
     }));
     socket.on("disconnect", () => {

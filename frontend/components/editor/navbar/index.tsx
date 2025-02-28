@@ -21,6 +21,8 @@ export default function Navbar({userData, virtualboxData, shared} : {userData: U
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isSharedOpen, setIsSharedOpen] = useState(false);
 
+    const isOwner = virtualboxData.userId === userData.id;
+
     return(
         <>
             <EditVirtualboxModal open={isEditOpen} setOpen={setIsEditOpen} data={virtualboxData} />
@@ -32,16 +34,24 @@ export default function Navbar({userData, virtualboxData, shared} : {userData: U
                     </Link> 
                     <div className='text-sm font-medium flex items-center'>
                         {virtualboxData.name}
-                        <button onClick={() =>setIsEditOpen(true)} className='h-7 w-7 ml-2 flex items-center justify-center rounded-md bg-background border border-border'>
-                            <Pencil className='h-4 w-4'/>
-                        </button>
+                        {
+                            isOwner ? (
+                                <button onClick={() =>setIsEditOpen(true)} className='h-7 w-7 ml-2 flex items-center justify-center rounded-md bg-background border border-border'>
+                                    <Pencil className='h-4 w-4'/>
+                                </button>
+                            ): null
+                        }
                     </div>
                     <div className='flex items-center space-x-4'>
                         <Avatars/>
-                       <Button variant={"outline"} onClick={() => setIsSharedOpen(true)}>
-                            <Users className='w-4 h-4 mr-2'/>
-                            Share
-                        </Button> 
+                        {
+                            isOwner ? (
+                                <Button variant={"outline"} onClick={() => setIsSharedOpen(true)}>
+                                    <Users className='w-4 h-4 mr-2'/>
+                                    Share
+                                </Button> 
+                            ): null
+                        }
                         <UserButton userData={userData} />
                     </div>
                 </div>

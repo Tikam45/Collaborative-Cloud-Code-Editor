@@ -1,18 +1,10 @@
-import Image from "next/image";
-import dynamic from "next/dynamic";
+
 import Navbar from "@/components/editor/navbar";
 import { currentUser } from "@clerk/nextjs/server";
-import { notFound, redirect } from "next/navigation";
-import { SupabaseFiles, User, UsersToVirtualboxes, VirtualBox } from "@/lib/types";
-import { TFile, TFolder } from "@/components/editor/sidebar/types";
-import path from "path";
-import { url } from "inspector";
 import { Room } from "@/components/editor/live/room";
-// import CodeEditor from "@/components/editor";
-
-const CodeEditor = dynamic(() => import("@/components/editor"),{
-  // ssr: false, 
-});
+import CodeEditorWrapper from "@/components/codeEditorWrapper/editorWrapper";
+import { User, UsersToVirtualboxes, VirtualBox } from "@/lib/types";
+import { redirect } from "next/navigation";
 
 const getUserData = async(id: string) => {
   console.log(id);
@@ -55,13 +47,14 @@ export default async function CodePage({params} : {params: Promise<{ id: string}
   const virtualboxData = await getVirtualboxData(virtualboxId);
   // console.log("hello" ,virtualboxData);
   const shared = await getSharedUsers(virtualboxData.usersToVirtualboxes) ?? [];
+  console.log("shared", shared);
 
   return (
     <div className="flex w-screen flex-col h-screen bg-background">
       <Room id={virtualboxId}>
         <Navbar userData={userData} virtualboxData = {virtualboxData} shared={shared}/>
         <div className="w-screen flex grow">
-        <CodeEditor userId={user.id} virtualboxId={virtualboxId}/>
+        <CodeEditorWrapper userData={userData} virtualboxData={virtualboxData}/>
         </div>
       </Room>
     </div>

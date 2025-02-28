@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react"
 import { Button } from "./button"
+import { MouseEventHandler } from "react"
 
 export default function Tab({
     children,
@@ -11,7 +12,7 @@ export default function Tab({
 }:{
     children: React.ReactNode
     selected?: boolean
-    onClick?: ()=>void
+    onClick?: MouseEventHandler<HTMLButtonElement>;
     onClose?: ()=>void
 }){
     return(

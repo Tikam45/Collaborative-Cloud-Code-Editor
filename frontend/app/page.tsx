@@ -3,6 +3,7 @@ import Image from "next/image";
 import {currentUser} from "@clerk/nextjs/server"
 import { Button } from "@/components/ui/button";
 import { redirect } from "next/navigation";
+import {HydrationOverlay} from "@builder.io/react-hydration-overlay"
 
 export default async function Home() {
   const user = await currentUser();
@@ -11,8 +12,9 @@ export default async function Home() {
     redirect("/dashboard");
   }
   return (
-    <div className="overflow-hidden overscroll-none flex w-screen flex-col h-screen bg-background">
-      <div className="w-full max-w-screen-md px-8 flex flex-col items-center">
+    <HydrationOverlay>
+      <div className="overflow-hidden overscroll-none flex w-screen flex-col h-screen bg-background">
+      <div className="w-screen max-w-screen-md px-8 flex flex-col items-center justify-center mx-auto">
         <h1 className="text-2xl font-medium text-center mt-32">
           A Collaborative Cloud Code Editor, AI Powered Auto Scaling Copilot
         </h1>
@@ -27,5 +29,6 @@ export default async function Home() {
       </div>
       <div className="w-full rounded-lg bg-neutral-800 mt-12 aspect-video"></div>
     </div>
+    </HydrationOverlay>
   );
 }

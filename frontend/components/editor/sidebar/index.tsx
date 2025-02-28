@@ -1,6 +1,6 @@
 "use client"
 
-import { File, FilePlus, Folder, FolderPlus, Loader2, Search } from "lucide-react";
+import { File, FilePlus, Folder, FolderPlus, Loader2, Search, Sparkles } from "lucide-react";
 import Image from "next/image"
 import {getIconForFile} from "vscode-icons-js"
 import { TFile, TFolder } from "./types";
@@ -9,14 +9,17 @@ import SidebarFolder from "./folder";
 import { useState } from "react";
 import New from "./new";
 import { Socket } from "socket.io-client";
+import Toggle from "@/components/ui/customToggle";
 
 
-export default function Sidebar({files, selectFile, socket, addNew, handleDeletFolder, handleDeleteFile} : 
+export default function Sidebar({files, selectFile, socket, addNew, ai, setAi, handleDeletFolder, handleDeleteFile} : 
     {
         files : (TFile | TFolder)[]; 
         selectFile: (tab: TFile) => void,
         socket: Socket, 
-        addNew: (name: string, type: "file" | "folder") =>void
+        addNew: (name: string, type: "file" | "folder") =>void;
+        ai: boolean;
+        setAi: React.Dispatch<React.SetStateAction<boolean>>
         handleDeleteFile : (file: TFile) => void
         handleDeletFolder : (folder: TFolder) => void
     }){
@@ -58,5 +61,9 @@ export default function Sidebar({files, selectFile, socket, addNew, handleDeletF
                     ): null
                 }
             </div>
+            <Toggle value={ai} setValue={setAi} className="w-full">
+                <Sparkles className="h-3 w-3 mr-2"/>
+                AI Copilot
+            </Toggle>
         </div>
 }

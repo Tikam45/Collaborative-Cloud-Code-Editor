@@ -6,9 +6,13 @@ import { Button } from "../ui/button"
 import { Check, Loader2, RotateCw, Sparkles } from "lucide-react"
 import { Socket } from "socket.io-client"
 import { BeforeMount, Editor, OnMount } from "@monaco-editor/react"
+import { toast } from "sonner"
+import { User } from "@/lib/types"
+import { useRouter } from "next/navigation"
 
 
 export default function GenerateInput({
+    user,
     socket,
     data,
     editor,
@@ -18,6 +22,7 @@ export default function GenerateInput({
     onExpand,
     onAccept
 }: {
+    user: User
     socket : Socket
     data: {
         fileName: string
@@ -40,6 +45,8 @@ export default function GenerateInput({
     console.log(result);
     `);
 
+    const router = useRouter();
+
     const [expanded, setExpanded] = useState(false);
     const [loading, setLoading] = useState({
         generate: false,
@@ -57,6 +64,10 @@ export default function GenerateInput({
     }, []);
 
     const handleGenerate = async({regenerate = false} :{regenerate?: boolean}) => {
+        if(user.generations >= 30){
+            toast.error("Your AI usage limit has been reached.");
+            return;
+        }
         setLoading({generate: !regenerate, regenerate});
         setCurrentPrompt(input)
 
@@ -79,6 +90,7 @@ export default function GenerateInput({
                 }
 
                 setCode(res.result.response);
+                router.refresh();
             }
         )
     };
