@@ -1,16 +1,14 @@
 "use client"
-
-import Avatar from "@/components/ui/avatar";
 import { colorClasses, colors } from "@/lib/colors";
 import { useOthers, useSelf } from "@/liveblocks.config";
 import { useState } from "react";
 
 export function Avatars(){
     const users = useOthers();
-    const currentUser = useSelf();
+    // const currentUser = useSelf();
 
     const colorNames = Object.keys(colors);
-    const [activeColors, setActiveColors] = useState([]);
+    // const [activeColors, setActiveColors] = useState([]);
 
     
     return (

@@ -27,7 +27,7 @@ export function Cursors({yProvider}: {yProvider: TypedLiveblocksProvider}){
         return() => {
             yProvider.awareness.off("change", setUsers);
         }
-    }, [yProvider]);
+    }, [yProvider, userInfo]);
 
 
     const styleSheet = useMemo(() => {

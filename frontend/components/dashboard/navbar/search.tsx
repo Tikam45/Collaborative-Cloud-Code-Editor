@@ -21,7 +21,7 @@ export default function DashboardNavbarSearch(){
         }, 300);
 
         return () => clearTimeout(delayDebounceFb);
-    }, [search])
+    }, [search, router])
 
     return(
         <div className="relative h-9 w-44 flex items-center justify-start ">

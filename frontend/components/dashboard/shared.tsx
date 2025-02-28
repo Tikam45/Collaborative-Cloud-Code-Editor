@@ -1,10 +1,9 @@
-import { VirtualBox } from "@/lib/types";
+
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import Image from "next/image";
 import { Button } from "../ui/button";
 import { ChevronRight } from "lucide-react";
 import Avatar from "../ui/avatar";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 
 
@@ -17,7 +16,7 @@ export default function DashboardSharedWithMe({ shared} :
                 id: string
                 name: string
                 email: string,
-                image: any
+                image: string
             }
             sharedOn : Date
         }[]

@@ -1,8 +1,6 @@
 "use client"
 
-import { File, FilePlus, Folder, FolderPlus, Loader2, Search, Sparkles } from "lucide-react";
-import Image from "next/image"
-import {getIconForFile} from "vscode-icons-js"
+import { FilePlus, FolderPlus, Loader2, Search, Sparkles } from "lucide-react";
 import { TFile, TFolder } from "./types";
 import SidebarFile from "./file";
 import SidebarFolder from "./folder";

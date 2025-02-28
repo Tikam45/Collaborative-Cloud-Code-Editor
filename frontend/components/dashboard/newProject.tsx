@@ -81,7 +81,7 @@ export default function  NewProjectModal({
                 </DialogHeader>
                 <div className="grid grid-cols-2 w-full gap-2 mt-2">
                     {data.map((item)=>(
-                        <button key={item.id} className={`${selected === item.id ? "border-foreground" : "border-border"} rounded-md border bg-card text-card-foreground shadow text-left p-4 flex flex-col transition-all focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-ring`} >
+                        <button onClick={() => setSelected(item.id)} key={item.id} className={`${selected === item.id ? "border-foreground" : "border-border"} rounded-md border bg-card text-card-foreground shadow text-left p-4 flex flex-col transition-all focus-visible:outline-none focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-ring`} >
                             <div className="space-x-2 flex items-center justify-start w-full">
                                 <Image alt="" src={item.icon} width={20} height={20} />
                                 <div className="font-medium">{item.name}</div>

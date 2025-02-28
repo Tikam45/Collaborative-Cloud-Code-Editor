@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Socket } from "socket.io-client";
 import {Terminal} from "@xterm/xterm"
 import {FitAddon} from "@xterm/addon-fit"
@@ -46,7 +46,7 @@ export default function EditorTerminal(
         return () => {
             if(terminal) terminal.dispose();
         }
-    }, [])
+    }, [term, setTerm])
 
     useEffect(() => {
         if(!term) return;
@@ -92,7 +92,7 @@ export default function EditorTerminal(
             disposable.dispose();
         })
 
-    }, [term, terminalRef.current])
+    }, [term])
 
 
     return (

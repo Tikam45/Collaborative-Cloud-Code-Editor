@@ -1,7 +1,7 @@
 "use client"
 
 import { TFile } from "./types";
-import { File, FilePlus, Folder, FolderPlus, Loader2, Pencil, Search, Trash2 } from "lucide-react";
+import {Loader2, Trash2 } from "lucide-react";
 import Image from "next/image"
 import { useState } from "react";
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";

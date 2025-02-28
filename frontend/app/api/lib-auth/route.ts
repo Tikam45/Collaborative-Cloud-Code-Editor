@@ -10,6 +10,7 @@ const liveblocks = new Liveblocks({
 });
 
 export async function POST(request: NextRequest){
+    console.log(request);
     const clerkUser = await currentUser();
 
     if(!clerkUser){
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest){
 
     const colorNames = Object.keys(colors);
     const randomColor = colorNames[Math.floor(Math.random() * colorNames.length)] as keyof typeof colors;
-    const code = colors[randomColor];
+    // const code = colors[randomColor];
 
 
     const session = liveblocks.prepareSession(user.id, {

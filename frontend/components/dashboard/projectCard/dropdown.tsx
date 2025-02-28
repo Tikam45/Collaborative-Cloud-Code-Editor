@@ -2,7 +2,7 @@
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { VirtualBox } from "@/lib/types";
-import { Ellipsis, Globe, Lock, Trash2, Unlock } from "lucide-react";
+import { Ellipsis, Globe, Lock, Trash2 } from "lucide-react";
 
 export default function ProjectCardDropdown ({virtualbox, onVisibilityChange, onDelete} : {
     virtualbox : VirtualBox;

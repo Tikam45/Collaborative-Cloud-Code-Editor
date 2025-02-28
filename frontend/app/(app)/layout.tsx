@@ -15,7 +15,7 @@ export default async function AppAuthLayout({children}:{
     const dbUserJSON = await dbUser.json();
 
     if(!dbUserJSON.id){
-        const res = await fetch(`https://cce-backend.tikamgupta05122004.workers.dev/api/user`, {
+        await fetch(`https://cce-backend.tikamgupta05122004.workers.dev/api/user`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

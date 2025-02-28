@@ -1,5 +1,4 @@
 import Link  from "next/link";
-import Image from "next/image";
 import {currentUser} from "@clerk/nextjs/server"
 import { Button } from "@/components/ui/button";
 import { redirect } from "next/navigation";

@@ -9,10 +9,11 @@ import { useRouter } from "next/navigation";
 
 export default function UserButton({userData} : {userData: User}) {
 
-    if(!userData) return null;
-
     const {signOut} = useClerk();
     const router = useRouter(); 
+
+    if(!userData) return null;
+
 
   return (
     <DropdownMenu>
@@ -45,7 +46,7 @@ export default function UserButton({userData} : {userData: User}) {
                 <span>Edit Profile</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator/>
-            <DropdownMenuItem className="!text-destructive cursor-pointer" onClick={() =>signOut(() => router.push("/"))}>
+            <DropdownMenuItem className="!text-destructive cursor-pointer" onClick={async() =>await signOut(() => router.push("/"))}>
                 <LogOut className="mr-2 h-4 w-4"/>
                 <span>Log Out</span>
             </DropdownMenuItem>

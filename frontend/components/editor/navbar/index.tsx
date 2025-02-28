@@ -1,10 +1,9 @@
 "use client"
-import { ChevronLeft, Clock, Pencil, Users } from 'lucide-react'
+import { Pencil, Users } from 'lucide-react'
 import {Button} from '../../ui/button'
 import Image from 'next/image'
 import Logo from "@/assets/logo.svg"
 import Link from 'next/link'
-import {dark} from "@clerk/themes"
 import { User, VirtualBox } from '@/lib/types'
 import UserButton from '../../ui/userButton'
 import { useState } from 'react'

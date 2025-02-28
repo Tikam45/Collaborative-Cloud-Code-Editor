@@ -22,7 +22,7 @@ export async function createVirtualbox(body:{
 export async function deleteVirtualbox(
     id: string
 ) {
-    const res = fetch(`https://cce-backend.tikamgupta05122004.workers.dev/api/virtualbox?id=${id}`, {
+    await fetch(`https://cce-backend.tikamgupta05122004.workers.dev/api/virtualbox?id=${id}`, {
         method: "DELETE",
     })
 
@@ -34,7 +34,7 @@ export async function updateVirtualbox(body:{
     name?: string
     visibility: "public" | "private"
 }) {
-    const res = fetch('https://cce-backend.tikamgupta05122004.workers.dev/api/virtualbox', {
+    await fetch('https://cce-backend.tikamgupta05122004.workers.dev/api/virtualbox', {
         method: "POST",
         headers:{
             "Content-Type": "application/json"
@@ -68,6 +68,7 @@ export async function shareVirtualbox(
         return {success: true, message: "Shared Successfully"};
     }
     catch(err){
+        console.log(err);
         return {success: false, message: "Couldn't Share"};
     }
 }
@@ -77,7 +78,7 @@ export async function unshareVirtualbox(
     virtualboxId: string,
     userId: string
 ) {
-    const res = await fetch('https://cce-backend.tikamgupta05122004.workers.dev/api/virtualbox/share', {
+    await fetch('https://cce-backend.tikamgupta05122004.workers.dev/api/virtualbox/share', {
         method: "DELETE",
         headers:{
             "Content-Type": "application/json"
@@ -89,24 +90,24 @@ export async function unshareVirtualbox(
 }
 
 
-export async function generateCode(code:string, line: number) {
+// export async function generateCode(code:string, line: number) {
     
-    const res = await fetch("https://api.cloudflare.com/client/v4/accounts/49ec3b98dac5f81ba729f8283f7ad51d/ai/run/@cf/meta/llama-3-8b-instruct", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_AI_KEY}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            messages: [
-                {
-                    role: "system",
-                    content: "You are an expert coding assistant who reads from an existing code file and suggests code to add to the file"
-                },
-                {
-                    role: "user",
-                    content: "",
-                }
-            ]
-        })
-    })
-}
+//     await fetch("https://api.cloudflare.com/client/v4/accounts/49ec3b98dac5f81ba729f8283f7ad51d/ai/run/@cf/meta/llama-3-8b-instruct", {
+//         method: "POST",
+//         headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_AI_KEY}`,
+//             "Content-Type": "application/json"
+//         },
+//         body: JSON.stringify({
+//             messages: [
+//                 {
+//                     role: "system",
+//                     content: "You are an expert coding assistant who reads from an existing code file and suggests code to add to the file"
+//                 },
+//                 {
+//                     role: "user",
+//                     content: "",
+//                 }
+//             ]
+//         })
+//     })
+// }

@@ -13,7 +13,9 @@ export default function SharedUser({user, virtualboxId}: {
     const [loading, setLoading] = useState(false);
 
     async function handleUnshare(id:string) {
-        
+        console.log("unshare", id);
+        setLoading(true);
+        console.log(virtualboxId);
     }
 
     return (

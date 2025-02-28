@@ -6,11 +6,11 @@ import {
     ResizablePanelGroup,
   } from "../ui/resizable"
 import { Button } from "../ui/button"
-import { FileJson, Loader, Loader2, Plus, SquareTerminal, TerminalSquare, X } from "lucide-react"
+import { FileJson, Loader2, Plus, SquareTerminal, TerminalSquare } from "lucide-react"
 import {BeforeMount, Editor, OnMount} from '@monaco-editor/react';
 import monaco from 'monaco-editor'
 import { Terminal } from "@xterm/xterm";
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Sidebar from "./sidebar/index";
 import Tab from "../ui/tab";
 import { TFile, TFolder } from "./sidebar/types";
@@ -49,15 +49,15 @@ export default function CodeEditor(
     const [files, setFiles] = useState<(TFile | TFolder)[]>([]);
     const [editorLanguage, setEditorLanguage] = useState<string | undefined> (undefined);
     const [activeFile, setActiveFile] = useState<string | null> (null);
-    const [term , setTerm] = useState<string[]>([])
+    // const [term , setTerm] = useState<string[]>([])
     const [ai, setAi] = useState(false);
-    const [closingTerminal, setClosingTerminal] = useState("");
+    // const [closingTerminal, setClosingTerminal] = useState("");
     const [provider, setProvider] = useState<TypedLiveblocksProvider>()
     const [activeTerminalId, setActiveTerminalId] = useState("");
     const [creatingTerminal, setCreatingTerminal] = useState(false);
     const generateRef = useRef<HTMLDivElement>(null);
 
-    const [showGenerate, setShowGenerate] = useState(false);
+    // const [showGenerate, setShowGenerate] = useState(false);
     const monacoRef = useRef<typeof monaco | null>(null);
     const [cursorLine, setCursorLine] = useState(0);
     const [terminals, setTerminals] = useState<
@@ -117,7 +117,7 @@ export default function CodeEditor(
             //     if(term.terminal) term.terminal.dispose();
             // })
         }
-    }, [])
+    }, [socket, resizeObserver])
 
     useEffect(() => {
         function onLoadedEvent (files : (TFolder | TFile)[]){
@@ -160,7 +160,7 @@ export default function CodeEditor(
             socket.off("rateLimit", onRateLimit);
             socket.off("terminalResponse", onTerminalResponse);
         }
-    }, [terminals])
+    }, [terminals, socket])
 
     const selectFile = (tab: TFile) => {
         if(tab.id === activeId) return;
@@ -224,7 +224,7 @@ export default function CodeEditor(
             const model = editor.getModel();
             const endcolumn = model?.getLineContent(lineNumber).length || 0;
             
-            //@ts-ignore
+            //@ts-expect-error
             setDecorations((prev) => {
                 return {
                     ...prev,
@@ -246,6 +246,7 @@ export default function CodeEditor(
         })
 
         editor.onDidBlurEditorText((e) => {
+            console.log(e);
             setDecorations((prev) => {
                 return {...prev, options:[]};
             })
@@ -285,10 +286,10 @@ export default function CodeEditor(
 
         if(index === -1) return;
 
-        setClosingTerminal(term.id);
+        // setClosingTerminal(term.id);
 
         socket.emit("closeTerminal", term.id, (res: boolean) => {
-            setClosingTerminal("");
+            // setClosingTerminal("");
             const nextId = 
             activeTerminalId === term.id 
             ? numTerminals === 1 
@@ -298,6 +299,7 @@ export default function CodeEditor(
                 : terminals[index-1].id
             : activeTerminalId;
 
+            console.log(res);
             // if(activeTerminal && activeTerminal.terminal){
             //     activeTerminal.terminal.dispose();
             // }
@@ -376,7 +378,7 @@ export default function CodeEditor(
 
             if(!generate.widget) return;
 
-            editorRef?.removeContentWidget(generate.widget as any);
+            editorRef?.removeContentWidget(generate.widget);
             setGenerate((prev) => {
                 return{
                     ...prev, 
@@ -384,7 +386,7 @@ export default function CodeEditor(
                 }
             })
         }
-    }, [generate.show]);
+    }, [generate.show, ai, cursorLine, editorRef, generate.id, generate.pref, generate.widget]);
 
     useEffect(() => {
         if(decorations.options.length === 0){
@@ -406,14 +408,14 @@ export default function CodeEditor(
                 }
             })
         }
-    }, [decorations.options]);
+    }, [decorations.options, ai, decorations.instance, editorRef]);
 
     useEffect(() => {
         const down = (e: KeyboardEvent) => {
             if(e.key === "s" && (e.metaKey || e.ctrlKey)){
                 e.preventDefault();
 
-                const activeTab = tabs.find((t) => t.id === activeId);
+                // const activeTab = tabs.find((t) => t.id === activeId);
 
                 setTabs((prev) => prev.map((tab) => tab.id === activeId ? {...tab, saved: true} : tab));
 
@@ -426,7 +428,7 @@ export default function CodeEditor(
         return() => {
             document.removeEventListener("keydown", down);
         }
-    }, [tabs, activeId])
+    }, [tabs, activeId, editorRef, socket])
 
     const handleDeleteFile = (file: TFile) => {
         socket.emit("deleteFile", file.id, (response: (TFile | TFolder)[])=>{
@@ -436,7 +438,7 @@ export default function CodeEditor(
     }
 
     const handleDeletFolder = (folder: TFolder)=> {
-
+        console.log("deleting folder. I am tikam gupta and will update its logic soon.")
     }
 
     const handleEditorWillMount: BeforeMount = (monaco) => {
@@ -459,7 +461,7 @@ export default function CodeEditor(
 
         const yDoc = new Y.Doc();
         const yText = yDoc.getText(tab.id);
-        const yProvider: any = new LiveblocksProvider(room, yDoc);
+        const yProvider = new LiveblocksProvider(room, yDoc) as TypedLiveblocksProvider;
 
         console.log("editor", editorRef);
         console.log("tabId", tab.id);
@@ -484,11 +486,11 @@ export default function CodeEditor(
     
         setProvider(yProvider);
     
-        const binding : any = new MonacoBinding(
+        const binding  = new MonacoBinding(
           yText,
           model as monaco.editor.ITextModel,
           new Set([editorRef]),
-          yProvider.awareness as Awareness
+          yProvider.awareness as unknown as Awareness
         );
     
         return () => {
@@ -515,8 +517,8 @@ export default function CodeEditor(
                     editor={{
                         language: editorLanguage!
                     }}
-                    cancel={() => {}} submit={(str : string) => {}} width={generate.width - 90 } 
-                    onExpand={() => {
+                     width={generate.width - 90 } 
+                    onExpand={useCallback(() => {
                         editorRef?.changeViewZones(function(changeAccessor){
                             changeAccessor.removeZone(generate.id);
 
@@ -532,7 +534,7 @@ export default function CodeEditor(
                                 return {...prev, id};
                             })
                         })
-                    }}
+                    }, [])}
                     onAccept={(code: string)=> {
                         const line = generate.line
                         setGenerate((prev) => {
@@ -684,11 +686,11 @@ export default function CodeEditor(
                                         {
                                             terminals.map(((term) => (
                                                 <EditorTerminal key={term.id} socket={socket} id={activeTerminal.id} term={activeTerminal.terminal} 
-                                                setTerm={(t: Terminal) => {
+                                                setTerm={useCallback((t: Terminal) => {
                                                     setTerminals((prev) => 
                                                     prev.map((term) => 
                                                         term.id === activeTerminalId ? {...term, terminal: t} : term))
-                                                }}
+                                                }, [])}
                                                 visible={activeTerminalId === term.id}
                                                 /> 
                                             )))

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import { Button } from "../ui/button"
 import { Check, Loader2, RotateCw, Sparkles } from "lucide-react"
 import { Socket } from "socket.io-client"
-import { BeforeMount, Editor, OnMount } from "@monaco-editor/react"
+import {  Editor } from "@monaco-editor/react"
 import { toast } from "sonner"
 import { User } from "@/lib/types"
 import { useRouter } from "next/navigation"
@@ -16,8 +16,6 @@ export default function GenerateInput({
     socket,
     data,
     editor,
-    cancel,
-    submit,
     width,
     onExpand,
     onAccept
@@ -32,8 +30,6 @@ export default function GenerateInput({
     editor: {
         language: string
     }
-    cancel: () => void
-    submit: (input: string) => void
     width: number,
     onExpand: () => void;
     onAccept: (code: string) => void
@@ -82,8 +78,8 @@ export default function GenerateInput({
                     response: string
                 }
                 success: boolean
-                errors: any[]
-                messages: any[]
+                errors: string[]
+                messages: string[]
             }) => {
                 if(!res.success){
                     return;
@@ -101,7 +97,7 @@ export default function GenerateInput({
             onExpand()
             setLoading({generate: false, regenerate: false});
         }
-    }, [code]);
+    }, [code, onExpand]);
   
     return(
         <div className="w-full pr-4 space-y-2">

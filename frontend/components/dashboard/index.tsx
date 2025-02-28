@@ -1,17 +1,14 @@
 "use client"
 
-import { Plus, FolderDot, Settings, Users, Code2, HelpCircle, Globe, Clock } from "lucide-react"
+import { Plus, FolderDot, Settings, Users, Code2, HelpCircle } from "lucide-react"
 import CustomButton from "../ui/customButton"
 import {Button} from "../ui/button";
 import { useState } from "react";
-import ProjectCard from "./projectCard";
 import { VirtualBox } from "@/lib/types";
-import Image from "next/image";
-import ProjectCardDropdown from "./projectCard/dropdown";
 import DashboardSharedWithMe from "./shared";
 import DashboardProjects from "./projects";
 import NewProjectModal from "./newProject";
-import { useParams, useSearchParams } from "next/navigation";
+import {  useSearchParams } from "next/navigation";
 import AboutModal from "./about";
 import { toast } from "sonner";
 
@@ -25,7 +22,7 @@ export default function Dashboard({virtualboxes, shared}: {
             id: string
             name: string
             email: string,
-            image: any
+            image: string
         }
         sharedOn : Date
     }[]

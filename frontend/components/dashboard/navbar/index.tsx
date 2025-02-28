@@ -1,11 +1,8 @@
 
-import { ChevronLeft, Clock, Pencil } from 'lucide-react'
-import {Button} from '../../ui/button'
 import Image from 'next/image'
 import Logo from "@/assets/logo.svg"
 import Link from 'next/link'
 import DashboardNavbarSearch from './search'
-import {dark} from "@clerk/themes"
 import { User } from '@/lib/types'
 import UserButton from '../../ui/userButton'
 
