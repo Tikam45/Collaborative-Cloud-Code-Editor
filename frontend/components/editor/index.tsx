@@ -224,7 +224,7 @@ export default function CodeEditor(
             const model = editor.getModel();
             const endcolumn = model?.getLineContent(lineNumber).length || 0;
             
-            //@ts-expect-error
+            // @ts-expect-error: Type mismatch in function parameters
             setDecorations((prev) => {
                 return {
                     ...prev,
@@ -438,7 +438,7 @@ export default function CodeEditor(
     }
 
     const handleDeletFolder = (folder: TFolder)=> {
-        console.log("deleting folder. I am tikam gupta and will update its logic soon.")
+        console.log("deleting folder. I am tikam gupta and will update its logic soon.", folder)
     }
 
     const handleEditorWillMount: BeforeMount = (monaco) => {
@@ -518,7 +518,7 @@ export default function CodeEditor(
                         language: editorLanguage!
                     }}
                      width={generate.width - 90 } 
-                    onExpand={useCallback(() => {
+                    onExpand={() => {
                         editorRef?.changeViewZones(function(changeAccessor){
                             changeAccessor.removeZone(generate.id);
 
@@ -534,7 +534,7 @@ export default function CodeEditor(
                                 return {...prev, id};
                             })
                         })
-                    }, [])}
+                    }}
                     onAccept={(code: string)=> {
                         const line = generate.line
                         setGenerate((prev) => {
@@ -686,11 +686,11 @@ export default function CodeEditor(
                                         {
                                             terminals.map(((term) => (
                                                 <EditorTerminal key={term.id} socket={socket} id={activeTerminal.id} term={activeTerminal.terminal} 
-                                                setTerm={useCallback((t: Terminal) => {
+                                                setTerm={(t: Terminal) => {
                                                     setTerminals((prev) => 
                                                     prev.map((term) => 
                                                         term.id === activeTerminalId ? {...term, terminal: t} : term))
-                                                }, [])}
+                                                }}
                                                 visible={activeTerminalId === term.id}
                                                 /> 
                                             )))

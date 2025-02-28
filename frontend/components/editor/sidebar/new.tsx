@@ -1,8 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { useEffect, useRef, useState } from "react";
-import {getIconForFile} from "vscode-icons-js"
+import { useEffect, useRef } from "react";
 import { Socket } from "socket.io-client";
 import { validateName } from "@/lib/utils";
 
