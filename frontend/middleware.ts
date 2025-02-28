@@ -1,7 +1,8 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { authMiddleware } from "@clerk/nextjs/server";
+import { NextRequest } from "next/server";
 
-export default clerkMiddleware({
-  publicRoutes: (req) =>
+export default authMiddleware({
+  publicRoutes: (req: NextRequest) =>
     !req.url.includes("/dashboard") && !req.url.includes("/code"),
 });
 
