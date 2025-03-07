@@ -18,16 +18,9 @@ const port = process.env.PORT || 4000;
 
 const httpServer = createServer(app);
 
-app.use(cors({
-    origin: '*'
-}));
-
 const io = new Server(httpServer, {
     cors: {
-        origin: "*",
-        methods: ["GET", "POST", "PUT", "DELETE"],
-        allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
-        credentials: true,
+        origin: "*"
     },
 });
 
