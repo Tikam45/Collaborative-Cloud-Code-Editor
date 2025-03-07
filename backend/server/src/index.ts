@@ -25,7 +25,9 @@ app.use(cors({
 const io = new Server(httpServer, {
     cors: {
         origin: "https://collaborative-cloud-code-editor.vercel.app",
-        methods: ["GET", "POST", "PUT", "DELETE"]
+        methods: ["GET", "POST", "PUT", "DELETE"],
+        allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
+        credentials: true,
     },
 });
 
