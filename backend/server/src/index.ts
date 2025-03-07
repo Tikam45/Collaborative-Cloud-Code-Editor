@@ -24,7 +24,7 @@ app.use(cors({
 
 const io = new Server(httpServer, {
     cors: {
-        origin: "*",
+        origin: "https://collaborative-cloud-code-editor.vercel.app",
     },
 });
 
