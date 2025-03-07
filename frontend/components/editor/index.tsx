@@ -86,7 +86,7 @@ export default function CodeEditor(
 
     const socket = io(
         `https://collaborative-cloud-code-editor-api.vercel.app?userId=${userData.id}&virtualboxId=${virtualboxData.id}`, {
-            transports: ["websocket", "polling"],
+            transports: ["polling", "websocket"],
             withCredentials: true,
         }
     );
