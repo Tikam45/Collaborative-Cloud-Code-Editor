@@ -29,11 +29,11 @@ const app = (0, express_1.default)();
 const port = process.env.PORT || 4000;
 const httpServer = (0, http_1.createServer)(app);
 app.use((0, cors_1.default)({
-    origin: 'https://collaborative-cloud-code-editor.vercel.app'
+    origin: '*'
 }));
 const io = new socket_io_1.Server(httpServer, {
     cors: {
-        origin: "https://collaborative-cloud-code-editor.vercel.app",
+        origin: "*",
         methods: ["GET", "POST", "PUT", "DELETE"],
         allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
         credentials: true,
