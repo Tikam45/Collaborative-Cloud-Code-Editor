@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import getVirtualboxFiles from "./getVirtualboxFiles";
 import {  z } from "zod";
+import cors from "cors";
 import { saveFile, createFile, deleteFile, generateCode } from "./utils";
 import path from "path";
 import fs from "fs"
@@ -16,6 +17,10 @@ const app : Express = express();
 const port = process.env.PORT || 4000;
 
 const httpServer = createServer(app);
+
+app.use(cors({
+    origin: 'https://collaborative-cloud-code-editor.vercel.app'
+}));
 
 const io = new Server(httpServer, {
     cors: {
