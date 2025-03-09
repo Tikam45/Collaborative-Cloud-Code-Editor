@@ -80,4 +80,3 @@ const fetchFileContent = (fileId) => __awaiter(void 0, void 0, void 0, function*
     }
 });
 exports.default = getVirtualboxFiles;
-//# sourceMappingURL=getVirtualboxFiles.js.map

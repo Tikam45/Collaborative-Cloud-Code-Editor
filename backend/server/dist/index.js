@@ -21,9 +21,8 @@ const cors_1 = __importDefault(require("cors"));
 const utils_1 = require("./utils");
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
-// import {spawn} from "node-pty-prebuilt-multiarch"
 const os_1 = __importDefault(require("os"));
-const node_pty_prebuilt_multiarch_1 = require("node-pty-prebuilt-multiarch");
+const node_pty_1 = require("node-pty");
 const ratelimit_1 = require("./ratelimit");
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
@@ -175,7 +174,7 @@ io.on("connection", (socket) => __awaiter(void 0, void 0, void 0, function* () {
         const newPath = path_1.default.join(dirName, "projects", data.virtualboxId);
         console.log(newPath);
         fs_1.default.mkdirSync(newPath, { recursive: true });
-        const pty = (0, node_pty_prebuilt_multiarch_1.spawn)(os_1.default.platform() === "win32" ? "cmd.exe" : "bash", [], {
+        const pty = (0, node_pty_1.spawn)(os_1.default.platform() === "win32" ? "cmd.exe" : "bash", [], {
             name: "xterm",
             cols: 100,
             cwd: path_1.default.join(dirName, "projects", data.virtualboxId),
@@ -257,4 +256,3 @@ app.get("/", (req, res) => {
 httpServer.listen(port, () => {
     console.log(`Server listening on port ${port}`);
 });
-//# sourceMappingURL=index.js.map
