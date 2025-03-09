@@ -14,6 +14,15 @@ import { createFileRL, deleteFileRL, saveFileRL } from "./ratelimit";
 
 const app : Express = express();
 
+app.use(cors(
+    {
+        origin: "*",
+        methods: "*",
+        allowedHeaders: "Content-Type, Authorization",
+        credentials: true
+    }
+));
+
 const port = process.env.PORT || 4000;
 
 const httpServer = createServer(app);
@@ -21,6 +30,9 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
         origin: '*:*',
+        methods: '*:*',
+        allowedHeaders: "Content-Type, Authorization",
+        credentials: true
     },
 });
 
