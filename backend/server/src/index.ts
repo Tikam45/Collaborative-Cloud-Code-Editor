@@ -9,7 +9,7 @@ import path from "path";
 import fs from "fs"
 // import {spawn} from "node-pty-prebuilt-multiarch"
 import os from "os"
-import { IDisposable, IPty, spawn } from "node-pty-prebuilt-multiarch";
+import { IDisposable, IPty, spawn } from "node-pty";
 import { createFileRL, deleteFileRL, saveFileRL } from "./ratelimit";
 
 const app : Express = express();

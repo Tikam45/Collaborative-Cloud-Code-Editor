@@ -23,7 +23,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "node-pty-prebuilt-multiarch": "^0.10.1-pre.5",
+    "node-pty": "^1.0.0",
     "npm": "^11.1.0",
     "pre-commit": "^1.2.2",
     "prebuild-install": "^7.1.3",
