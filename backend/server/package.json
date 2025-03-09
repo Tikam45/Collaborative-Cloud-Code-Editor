@@ -3,11 +3,17 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npx tsc",
-    "start": "node dist/index.js",
-    "dev": "nodemon src/index.ts"
+  "start": "nodemon src/index.ts",
+  "build": "rimraf dist && tsc",
+  "ts.check": "tsc --project tsconfig.json",
+  "add-build": "git add dist",
+  "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "pre-commit": [
+      "ts.check",
+      "build",
+      "add-build"
+  ],
   "author": "",
   "license": "ISC",
   "description": "",
@@ -18,7 +24,9 @@
     "express": "^4.21.2",
     "node-pty-prebuilt-multiarch": "^0.10.1-pre.5",
     "npm": "^11.1.0",
+    "pre-commit": "^1.2.2",
     "rate-limiter-flexible": "^5.0.5",
+    "rimraf": "^6.0.1",
     "socket.io": "^4.8.1",
     "zod": "^3.24.1"
   },

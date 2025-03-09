@@ -257,3 +257,4 @@ app.get("/", (req, res) => {
 httpServer.listen(port, () => {
     console.log(`Server listening on port ${port}`);
 });
+//# sourceMappingURL=index.js.map
