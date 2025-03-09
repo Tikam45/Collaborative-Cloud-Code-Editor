@@ -18,5 +18,10 @@
                 "Access-Control-Allow-Credentials": "true"
             }
         }
-    ]
+    ],
+    "build" :{
+        "env": {
+            "NODE_ENV": "production"
+        }
+    }
 }
