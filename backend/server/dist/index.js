@@ -34,7 +34,10 @@ app.use((0, cors_1.default)({
 }));
 const port = process.env.PORT || 4000;
 const httpServer = (0, http_1.createServer)(app);
+// const io = new Server(res.socket.server,{ path: '/api/socket',addTrailingSlash: false });
 const io = new socket_io_1.Server(httpServer, {
+    path: "/socket.io",
+    addTrailingSlash: false,
     cors: {
         origin: '*',
         methods: '*',

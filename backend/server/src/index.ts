@@ -26,8 +26,10 @@ app.use(cors(
 const port = process.env.PORT || 4000;
 
 const httpServer = createServer(app);
-
+// const io = new Server(res.socket.server,{ path: '/api/socket',addTrailingSlash: false });
 const io = new Server(httpServer, {
+    path: "/socket.io", 
+    addTrailingSlash: false,
     cors: {
         origin: '*',
         methods: '*',
