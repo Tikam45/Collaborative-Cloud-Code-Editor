@@ -17,6 +17,7 @@ const http_1 = require("http");
 const socket_io_1 = require("socket.io");
 const getVirtualboxFiles_1 = __importDefault(require("./getVirtualboxFiles"));
 const zod_1 = require("zod");
+const cors_1 = __importDefault(require("cors"));
 const utils_1 = require("./utils");
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
@@ -25,11 +26,20 @@ const os_1 = __importDefault(require("os"));
 const node_pty_prebuilt_multiarch_1 = require("node-pty-prebuilt-multiarch");
 const ratelimit_1 = require("./ratelimit");
 const app = (0, express_1.default)();
+app.use((0, cors_1.default)({
+    origin: "*",
+    methods: "*",
+    allowedHeaders: "Content-Type, Authorization",
+    credentials: true
+}));
 const port = process.env.PORT || 4000;
 const httpServer = (0, http_1.createServer)(app);
 const io = new socket_io_1.Server(httpServer, {
     cors: {
-        origin: "*"
+        origin: '*',
+        methods: '*',
+        allowedHeaders: "Content-Type, Authorization, Access-Control-Allow-Origin",
+        credentials: true
     },
 });
 const terminals = {};
