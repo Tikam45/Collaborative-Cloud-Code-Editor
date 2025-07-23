@@ -302,7 +302,7 @@ io.on ("connection", async(socket) => {
     // });
 });
 
-app.get("/", (req,res)=>{
+app.get("/", (req: any,res:any)=>{
     res.send({message: "server is run"})
 })
 httpServer.listen(port, () => {
