@@ -8,7 +8,7 @@ import { saveFile, createFile, deleteFile, generateCode } from "./utils";
 import path from "path";
 import fs from "fs"
 import os from "os"
-import { IDisposable, IPty, spawn } from "node-pty";
+// import { IDisposable, IPty, spawn } from "node-pty";
 import { createFileRL, deleteFileRL, saveFileRL } from "./ratelimit";
 
 const app : Express = express();
@@ -37,11 +37,11 @@ const io = new Server(httpServer, {
     },
 });
 
-const terminals : {[id: string] : {
-    terminal: IPty,
-    onData: IDisposable,
-    onExit: IDisposable;
-}} = {}
+// const terminals : {[id: string] : {
+//     terminal: IPty,
+//     onData: IDisposable,
+//     onExit: IDisposable;
+// }} = {}
 
 const dirName = path.join(__dirname, "..")
 
@@ -191,73 +191,73 @@ io.on ("connection", async(socket) => {
         }
     })
 
-    socket.on("createTerminal", (id: string, callback) => {
-        console.log("in Terminal", id);
+    // socket.on("createTerminal", (id: string, callback) => {
+    //     console.log("in Terminal", id);
 
-        if(terminals[id]){
-            console.log("Terminal already exists");
-            return;
-        }
-        if(Object.keys(terminals).length > 5){
-            console.log("Too many terminals");
-            return;
-        }
+    //     if(terminals[id]){
+    //         console.log("Terminal already exists");
+    //         return;
+    //     }
+    //     if(Object.keys(terminals).length > 5){
+    //         console.log("Too many terminals");
+    //         return;
+    //     }
 
-        const newPath = path.join(dirName, "projects", data.virtualboxId);
-        console.log(newPath);
-        fs.mkdirSync(newPath, {recursive: true});
+    //     const newPath = path.join(dirName, "projects", data.virtualboxId);
+    //     console.log(newPath);
+    //     fs.mkdirSync(newPath, {recursive: true});
 
-        const pty = spawn(os.platform() === "win32" ? "cmd.exe" : "bash", [], {
-            name: "xterm",
-            cols: 100,
-            cwd: path.join(dirName, "projects", data.virtualboxId),
-        })
+    //     const pty = spawn(os.platform() === "win32" ? "cmd.exe" : "bash", [], {
+    //         name: "xterm",
+    //         cols: 100,
+    //         cwd: path.join(dirName, "projects", data.virtualboxId),
+    //     })
 
-        const onData = pty.onData((data) => {
-            io.emit("terminalResponse", {
-                id,
-                data,
-            })
-        });
+    //     const onData = pty.onData((data: any) => {
+    //         io.emit("terminalResponse", {
+    //             id,
+    //             data,
+    //         })
+    //     });
 
-        console.log("Terminal created", terminals);
-        const onExit = pty.onExit((code) => console.log("exit", code));
-        pty.write("clear\r")
-        terminals[id] = {
-            terminal: pty,
-            onData,
-            onExit
-        };
+    //     console.log("Terminal created", terminals);
+    //     const onExit = pty.onExit((code: any) => console.log("exit", code));
+    //     pty.write("clear\r")
+    //     terminals[id] = {
+    //         terminal: pty,
+    //         onData,
+    //         onExit
+    //     };
 
-        callback(true);
-    });
+    //     callback(true);
+    // });
 
-    socket.on("closeTerminal", (id: string, callback) => {
-        if(!terminals[id]){
-            console.log("tried to close, but terminal doesn't exist");
-            return;
-        }
+    // socket.on("closeTerminal", (id: string, callback) => {
+    //     if(!terminals[id]){
+    //         console.log("tried to close, but terminal doesn't exist");
+    //         return;
+    //     }
 
-        terminals[id].onData.dispose();
-        terminals[id].onExit.dispose();
+    //     terminals[id].onData.dispose();
+    //     terminals[id].onExit.dispose();
 
-        delete terminals[id];
-        callback(true);
-    })
+    //     delete terminals[id];
+    //     callback(true);
+    // })
 
-    socket.on("terminalData" , (id: string, data: string) => {
-        console.log("term Data", id, data);
-        if(!terminals[id]){
-            return;
-        }
+    // socket.on("terminalData" , (id: string, data: string) => {
+    //     console.log("term Data", id, data);
+    //     if(!terminals[id]){
+    //         return;
+    //     }
 
-        try{
-            console.log("writing to terminal");
-            terminals[id].terminal.write(data);
-        }catch(e){
-            console.log("Error writing to terminal", e);
-        }
-    });
+    //     try{
+    //         console.log("writing to terminal");
+    //         terminals[id].terminal.write(data);
+    //     }catch(e){
+    //         console.log("Error writing to terminal", e);
+    //     }
+    // });
 
     socket.on("generateCode", async(
         fileName: string,
@@ -291,15 +291,15 @@ io.on ("connection", async(socket) => {
         callback(json);
     })
 
-    socket.on("disconnect", () => {
-        Object.entries(terminals).forEach((t) => {
-            const {terminal, onData , onExit} = t[1];
-            if(os.platform() !== "win32") terminal.kill();
-            onData.dispose();
-            onExit.dispose();
-            delete terminals[t[0]];
-        })
-    });
+    // socket.on("disconnect", () => {
+    //     Object.entries(terminals).forEach((t) => {
+    //         const {terminal, onData , onExit} = t[1];
+    //         if(os.platform() !== "win32") terminal.kill();
+    //         onData.dispose();
+    //         onExit.dispose();
+    //         delete terminals[t[0]];
+    //     })
+    // });
 });
 
 app.get("/", (req,res)=>{
